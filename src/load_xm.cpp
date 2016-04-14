@@ -71,6 +71,14 @@ typedef struct tagXMSAMPLESTRUCT
 } XMSAMPLESTRUCT;
 #pragma pack()
 
+// load WORD from unaligned memory location
+static WORD loadWORD(const BYTE* ptr) {
+    return ptr[0] | ptr[1]<<8;
+}
+// load DWORD from unaligned memory location
+static DWORD loadDWORD(const BYTE* ptr) {
+    return ptr[0] | ptr[1]<<8 | ptr[2]<<16 | ptr[3]<<24;
+}
 
 BOOL CSoundFile::ReadXM(const BYTE *lpStream, DWORD dwMemLength)
 //--------------------------------------------------------------
@@ -157,16 +165,16 @@ BOOL CSoundFile::ReadXM(const BYTE *lpStream, DWORD dwMemLength)
 		UINT ipatmap = pattern_map[ipat];
 		DWORD dwSize = 0;
 		WORD rows=64, packsize=0;
-		dwSize = bswapLE32(*((DWORD *)(lpStream+dwMemPos)));
+		dwSize = bswapLE32(loadDWORD(lpStream+dwMemPos));
 		while ((dwMemPos + dwSize >= dwMemLength) || (dwSize & 0xFFFFFF00))
 		{
 			if (dwMemPos + 4 >= dwMemLength) break;
 			dwMemPos++;
-			dwSize = bswapLE32(*((DWORD *)(lpStream+dwMemPos)));
+			dwSize = bswapLE32(loadDWORD(lpStream+dwMemPos));
 		}
-		rows = bswapLE16(*((WORD *)(lpStream+dwMemPos+5)));
+		rows = bswapLE16(loadWORD(lpStream+dwMemPos+5));
 		if ((!rows) || (rows > 256)) rows = 64;
-		packsize = bswapLE16(*((WORD *)(lpStream+dwMemPos+7)));
+		packsize = bswapLE16(loadWORD(lpStream+dwMemPos+7));
 		if (dwMemPos + dwSize + 4 > dwMemLength) return TRUE;
 		dwMemPos += dwSize;
 		if (dwMemPos + packsize + 4 > dwMemLength) return TRUE;
@@ -264,7 +272,7 @@ BOOL CSoundFile::ReadXM(const BYTE *lpStream, DWORD dwMemLength)
 	// Wrong offset check
 	while (dwMemPos + 4 < dwMemLength)
 	{
-		DWORD d = bswapLE32(*((DWORD *)(lpStream+dwMemPos)));
+		DWORD d = bswapLE32(loadDWORD(lpStream+dwMemPos));
 		if (d < 0x300) break;
 		dwMemPos++;
 	}
@@ -513,9 +521,9 @@ BOOL CSoundFile::ReadXM(const BYTE *lpStream, DWORD dwMemLength)
 		}
 	}
 	// Read song comments: "TEXT"
-	if ((dwMemPos + 8 < dwMemLength) && (bswapLE32(*((DWORD *)(lpStream+dwMemPos))) == 0x74786574))
+	if ((dwMemPos + 8 < dwMemLength) && (bswapLE32(loadDWORD(lpStream+dwMemPos)) == 0x74786574))
 	{
-		UINT len = *((DWORD *)(lpStream+dwMemPos+4));
+		UINT len = bswapLE32(loadDWORD(lpStream+dwMemPos+4));
 		dwMemPos += 8;
 		if ((dwMemPos + len <= dwMemLength) && (len < 16384))
 		{
@@ -529,9 +537,9 @@ BOOL CSoundFile::ReadXM(const BYTE *lpStream, DWORD dwMemLength)
 		}
 	}
 	// Read midi config: "MIDI"
-	if ((dwMemPos + 8 < dwMemLength) && (bswapLE32(*((DWORD *)(lpStream+dwMemPos))) == 0x4944494D))
+	if ((dwMemPos + 8 < dwMemLength) && (bswapLE32(loadDWORD(lpStream+dwMemPos)) == 0x4944494D))
 	{
-		UINT len = *((DWORD *)(lpStream+dwMemPos+4));
+		UINT len = bswapLE32(loadDWORD(lpStream+dwMemPos+4));
 		dwMemPos += 8;
 		if (len == sizeof(MODMIDICFG))
 		{
@@ -540,9 +548,9 @@ BOOL CSoundFile::ReadXM(const BYTE *lpStream, DWORD dwMemLength)
 		}
 	}
 	// Read pattern names: "PNAM"
-	if ((dwMemPos + 8 < dwMemLength) && (bswapLE32(*((DWORD *)(lpStream+dwMemPos))) == 0x4d414e50))
+	if ((dwMemPos + 8 < dwMemLength) && (bswapLE32(loadDWORD(lpStream+dwMemPos)) == 0x4d414e50))
 	{
-		UINT len = *((DWORD *)(lpStream+dwMemPos+4));
+		UINT len = bswapLE32(loadDWORD(lpStream+dwMemPos+4));
 		dwMemPos += 8;
 		if ((dwMemPos + len <= dwMemLength) && (len <= MAX_PATTERNS*MAX_PATTERNNAME) && (len >= MAX_PATTERNNAME))
 		{
@@ -557,9 +565,9 @@ BOOL CSoundFile::ReadXM(const BYTE *lpStream, DWORD dwMemLength)
 		}
 	}
 	// Read channel names: "CNAM"
-	if ((dwMemPos + 8 < dwMemLength) && (bswapLE32(*((DWORD *)(lpStream+dwMemPos))) == 0x4d414e43))
+	if ((dwMemPos + 8 < dwMemLength) && (bswapLE32(loadDWORD(lpStream+dwMemPos)) == 0x4d414e43))
 	{
-		UINT len = *((DWORD *)(lpStream+dwMemPos+4));
+		UINT len = bswapLE32(loadDWORD(lpStream+dwMemPos+4));
 		dwMemPos += 8;
 		if ((dwMemPos + len <= dwMemLength) && (len <= MAX_BASECHANNELS*MAX_CHANNELNAME))
 		{
